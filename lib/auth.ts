@@ -3,8 +3,8 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import { db } from "./db"
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d"
+const JWT_SECRET: string = process.env.JWT_SECRET || "your-secret-key-change-in-production"
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || "7d"
 
 export interface JWTPayload {
   userId: string
@@ -32,8 +32,11 @@ export async function verifyPassword(
  * 生成JWT token
  */
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
+  if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET is not defined")
+  }
+  return jwt.sign(payload, JWT_SECRET as string, {
+    expiresIn: JWT_EXPIRES_IN as string,
   })
 }
 
