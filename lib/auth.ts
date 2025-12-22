@@ -35,9 +35,12 @@ export function generateToken(payload: JWTPayload): string {
   if (!JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined")
   }
-  return jwt.sign(payload, JWT_SECRET as string, {
-    expiresIn: JWT_EXPIRES_IN as string,
-  })
+  // 确保类型正确：jwt.sign 需要明确的类型
+  const secret: string = JWT_SECRET
+  const options: jwt.SignOptions = {
+    expiresIn: JWT_EXPIRES_IN,
+  }
+  return jwt.sign(payload, secret, options)
 }
 
 /**
