@@ -70,8 +70,9 @@ export async function GET(
 
     let totalScore = 0;
     let scoredSessionCount = 0;
-
+   
     // 过滤掉 samples 为 null 的 session
+    const validSessions = recentSessions.filter(session => session.samples !== null);
     const sessionsWithSamples = recentSessions.filter(session => session.samples != null);
 
     for (const session of sessionsWithSamples) {
