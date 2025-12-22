@@ -17,28 +17,59 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100); // 最多 100 条
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
     
-    const [sessions, totalCount] = await Promise.all([
-      db.session.findMany({
-        take: limit,
-        skip: offset,
-        orderBy: { startedAt: 'desc' },
-        include: {
-          device: {
-            select: {
-              id: true,
-              name: true,
+    // 查询 sessions，处理可能的数据库错误
+    let sessions, totalCount;
+    try {
+      [sessions, totalCount] = await Promise.all([
+        db.session.findMany({
+          take: limit,
+          skip: offset,
+          orderBy: { startedAt: 'desc' },
+          include: {
+            device: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            clinic: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-          clinic: {
-            select: {
-              id: true,
-              name: true,
+        }),
+        db.session.count(), // 获取总数
+      ]);
+    } catch (dbError) {
+      // 如果是数据库连接错误，提供更友好的错误信息
+      console.error('[Session API] 数据库查询错误:', dbError);
+      if (dbError instanceof Error) {
+        // 检查是否是数据库连接问题
+        if (dbError.message.includes('Can\'t reach database') || 
+            dbError.message.includes('P1001') ||
+            dbError.message.includes('connection') ||
+            dbError.message.includes('timeout')) {
+          return Response.json(
+            { 
+              error: '数据库连接失败', 
+              message: '无法连接到数据库。请检查数据库配置或联系管理员。',
+              sessions: [], // 返回空数组，避免前端崩溃
+              pagination: {
+                limit,
+                offset,
+                total: 0,
+                hasMore: false,
+              },
             },
-          },
-        },
-      }),
-      db.session.count(), // 获取总数
-    ]);
+            { status: 503, headers: corsHeaders }
+          );
+        }
+      }
+      // 重新抛出错误，让外层 catch 处理
+      throw dbError;
+    }
 
     return Response.json({ 
       sessions,
