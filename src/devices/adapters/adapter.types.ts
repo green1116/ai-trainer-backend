@@ -16,10 +16,12 @@ export type VendorProtocol = {
   intensity?: number;
   duration?: number;       // 时长（秒）
   durationSec?: number;     // 或 durationSec
+  bleCommand?: number[];   // BLE 命令字节数组（用于 BLE 设备）
   // 或其他厂商特定的字段...
 } | {
   // 示例：厂商 B 的协议
   action?: string;
   params?: Record<string, any>;
+  bleCommand?: number[];   // BLE 命令字节数组（用于 BLE 设备）
 } | string; // 某些厂商可能使用字符串协议
 
