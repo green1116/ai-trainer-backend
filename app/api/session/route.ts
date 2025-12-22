@@ -20,55 +20,74 @@ export async function GET(req: Request) {
     // 查询 sessions，处理可能的数据库错误
     let sessions, totalCount;
     try {
+      // 先尝试简单的查询，不包含关联，避免关联查询导致的问题
       [sessions, totalCount] = await Promise.all([
         db.session.findMany({
           take: limit,
           skip: offset,
           orderBy: { startedAt: 'desc' },
-          include: {
-            device: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            clinic: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
+          // 暂时移除 include，避免关联查询导致的问题
+          // 如果需要设备信息，可以单独查询
         }),
         db.session.count(), // 获取总数
       ]);
+
+      // 如果需要设备信息，可以单独查询（可选）
+      // 这里先返回基本数据，避免复杂的关联查询导致错误
     } catch (dbError) {
-      // 如果是数据库连接错误，提供更友好的错误信息
+      // 记录详细错误信息
       console.error('[Session API] 数据库查询错误:', dbError);
-      if (dbError instanceof Error) {
-        // 检查是否是数据库连接问题
-        if (dbError.message.includes('Can\'t reach database') || 
-            dbError.message.includes('P1001') ||
-            dbError.message.includes('connection') ||
-            dbError.message.includes('timeout')) {
-          return Response.json(
-            { 
-              error: '数据库连接失败', 
-              message: '无法连接到数据库。请检查数据库配置或联系管理员。',
-              sessions: [], // 返回空数组，避免前端崩溃
-              pagination: {
-                limit,
-                offset,
-                total: 0,
-                hasMore: false,
-              },
+      const errorDetails = dbError instanceof Error ? {
+        name: dbError.name,
+        message: dbError.message,
+        stack: dbError.stack,
+      } : { error: String(dbError) };
+      
+      console.error('[Session API] 错误详情:', JSON.stringify(errorDetails, null, 2));
+
+      // 检查是否是数据库连接问题
+      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+      if (errorMessage.includes('Can\'t reach database') || 
+          errorMessage.includes('P1001') ||
+          errorMessage.includes('connection') ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('ECONNREFUSED') ||
+          errorMessage.includes('ENOTFOUND')) {
+        return Response.json(
+          { 
+            error: '数据库连接失败', 
+            message: '无法连接到数据库。请检查数据库配置或联系管理员。',
+            sessions: [], // 返回空数组，避免前端崩溃
+            pagination: {
+              limit,
+              offset,
+              total: 0,
+              hasMore: false,
             },
-            { status: 503, headers: corsHeaders }
-          );
-        }
+            // 在开发环境返回详细错误信息
+            ...(process.env.NODE_ENV === 'development' && { details: errorDetails }),
+          },
+          { status: 503, headers: corsHeaders }
+        );
       }
-      // 重新抛出错误，让外层 catch 处理
-      throw dbError;
+
+      // 其他数据库错误，返回 500 但包含错误信息
+      return Response.json(
+        { 
+          error: '数据库查询失败', 
+          message: errorMessage,
+          sessions: [], // 返回空数组，避免前端崩溃
+          pagination: {
+            limit,
+            offset,
+            total: 0,
+            hasMore: false,
+          },
+          // 在开发环境返回详细错误信息
+          ...(process.env.NODE_ENV === 'development' && { details: errorDetails }),
+        },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
     return Response.json({ 
