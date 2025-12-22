@@ -15,24 +15,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 获取用户偏好设置
-    const preferences = await db.userPreferences.findUnique({
-      where: { userId: user.id },
-    })
-
+    // 注意：当前 User 模型不包含 name 和 createdAt 字段
+    // userPreferences 模型也不存在
     return NextResponse.json({
       id: user.id,
       email: user.email,
-      name: user.name,
-      createdAt: user.createdAt,
-      preferences: preferences
-        ? {
-            defaultFrequency: preferences.defaultFrequency,
-            preferredTrainingTime: preferences.preferredTrainingTime,
-            notificationsEnabled: preferences.notificationsEnabled,
-            language: preferences.language,
-          }
-        : null,
+      plan: user.plan,
+      role: user.role,
+      clinicId: user.clinicId,
     })
   } catch (error) {
     console.error("获取用户信息错误:", error)
