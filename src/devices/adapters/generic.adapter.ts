@@ -15,7 +15,7 @@ import type { VendorProtocol } from './adapter.types';
  */
 export class GenericAdapter {
   private vendorName: string;
-  private deviceProfile: DeviceCapabilityProfile;
+  protected deviceProfile: DeviceCapabilityProfile; // 改为 protected，允许子类访问
 
   constructor(vendorName: string = 'default', deviceProfile?: DeviceCapabilityProfile) {
     this.vendorName = vendorName;
