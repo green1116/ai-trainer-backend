@@ -37,8 +37,8 @@ declare global {
     properties: BluetoothCharacteristicProperties;
     value?: DataView | null;
     readValue(): Promise<DataView>;
-    writeValue(value: BufferSource): Promise<void>;
-    writeValueWithoutResponse(value: BufferSource): Promise<void>;
+    writeValue(value: BufferSource | Uint8Array): Promise<void>;
+    writeValueWithoutResponse(value: BufferSource | Uint8Array): Promise<void>;
     startNotifications(): Promise<BluetoothRemoteGATTCharacteristic>;
     stopNotifications(): Promise<BluetoothRemoteGATTCharacteristic>;
     addEventListener(type: string, listener: EventListener): void;
