@@ -1,0 +1,63 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  plan     String  @default("free") // free | pro | clinic
+  role     String? // 'coach' | 'client' | null (用于 Clinic 用户区分教练和客户)
+  clinicId String?
+  clinic   Clinic? @relation(fields: [clinicId], references: [id])
+}
+
+model Clinic {
+  id       String    @id @default(uuid())
+  name     String
+  devices  Device[]
+  users    User[]
+  sessions Session[]
+}
+
+model Device {
+  id        String    @id // deviceId (格式: VP-YYYY-NNNNNN)
+  name      String?
+  clinicId  String?
+  createdAt DateTime  @default(now())
+  clinic    Clinic?   @relation(fields: [clinicId], references: [id])
+  sessions  Session[]
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  deviceId  String
+  clinicId  String?
+  startedAt DateTime
+  endedAt   DateTime?
+  samples   Json? // BLE v0.9: VibrationSample[] 格式 [{ t: number, hz: number }]
+  device    Device    @relation(fields: [deviceId], references: [id])
+  clinic    Clinic?   @relation(fields: [clinicId], references: [id])
+  deviceData DeviceData[] // 频率点数据
+}
+
+// 频率点数据表（原子数据，每个记录代表一个时间点的完整状态）
+model DeviceData {
+  id          String   @id @default(uuid())
+  sessionId   String
+  timestamp   DateTime @default(now()) // 数据采集时间戳
+  frequencyHz Float    // 频率 (Hz)
+  amplitude   Float?   // 振幅（可选）
+  mode        String?  // 模式（如 "training", "rehab", "balance" 等，不硬编码）
+  intensity   Float?   // 强度（可选，0-100）
+  createdAt   DateTime @default(now())
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@index([sessionId])
+  @@index([timestamp])
+  @@index([createdAt])
+}

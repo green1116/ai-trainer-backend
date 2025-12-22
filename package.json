@@ -1,0 +1,52 @@
+{
+  "name": "ai-trainer-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/clean-port.js || exit 0",
+    "dev": "next dev -p 6001",
+    "dev:raw": "next dev -p 6001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "clean:port": "clean-port.bat",
+    "clean:port:ps": "powershell -ExecutionPolicy Bypass -File ./clean-port.ps1",
+    "dev:clean": "npm run clean:port && npm run dev:raw",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:start": "docker-compose up -d",
+    "db:stop": "docker-compose down",
+    "db:reset": "docker-compose down -v",
+    "db:seed": "tsx scripts/seed-test-data.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.7.1",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "next": "16.0.10",
+    "openai": "^4.20.1",
+    "pdfkit": "^0.17.2",
+    "puppeteer": "^24.33.0",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^22",
+    "@types/pdfkit": "^0.17.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "prisma": "^5.7.1",
+    "tailwindcss": "^4.1.18",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "model": "FN-VIB-2025",
+  "type": "vibration_platform",
+  "frequencyHz": {
+    "min": 1,
+    "max": 60
+  },
+  "intensityLevels": 10,
+  "modes": [
+    {
+      "key": "rehab",
+      "label": {
+        "zh": "康复",
+        "en": "Rehab"
+      },
+      "frequencyRange": [5, 20]
+    },
+    {
+      "key": "strength",
+      "label": {
+        "zh": "力量",
+        "en": "Strength"
+      },
+      "frequencyRange": [25, 45]
+    }
+  ],
+  "supports": {
+    "realTimeStream": true,
+    "presetPrograms": true
+  }
+}
