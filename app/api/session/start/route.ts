@@ -26,18 +26,23 @@ export async function POST(request: NextRequest) {
     const { deviceId, startTime } = startSessionSchema.parse(body)
     // const { deviceId, planId, startTime } = startSessionSchema.parse(body) // planId 已移除
 
-    // 验证设备是否属于用户
+    // 验证设备是否存在
+    // 注意：Device 模型中没有 userId 字段，设备通过 clinicId 关联到 Clinic
+    // 如果需要验证设备是否属于用户，应该检查设备是否属于用户所在的 Clinic
     if (deviceId) {
       const device = await db.device.findFirst({
         where: {
           id: deviceId,
-          userId: user.id,
+          // 如果用户有关联的 clinicId，可以验证设备是否属于该诊所
+          ...(user.clinicId && {
+            clinicId: user.clinicId,
+          }),
         },
       })
 
       if (!device) {
         return NextResponse.json(
-          { error: "设备不存在或不属于当前用户" },
+          { error: "设备不存在" + (user.clinicId ? "或不属于当前用户的诊所" : "") },
           { status: 404 }
         )
       }
