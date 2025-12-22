@@ -38,9 +38,10 @@ export function generateToken(payload: JWTPayload): string {
   // 确保类型正确：jwt.sign 需要明确的类型
   const secret: string = JWT_SECRET
   // expiresIn 可以是 string (如 "7d") 或 number (秒数)
-  const options: jwt.SignOptions = {
-    expiresIn: JWT_EXPIRES_IN as string | number,
-  }
+  // 使用类型断言绕过严格的类型检查
+  const options = {
+    expiresIn: JWT_EXPIRES_IN,
+  } as jwt.SignOptions
   return jwt.sign(payload, secret, options)
 }
 
