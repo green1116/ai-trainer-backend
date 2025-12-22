@@ -113,25 +113,30 @@ export async function GET(
         return (record as any).frequencyHz ?? (record as any).frequency ?? 0;
       });
       
-      // 准备图表数据点（前端只关心: t, hz, amp?, mode?）
-      // Chart 只做一件事：画数值，不理解业务
+      // 修复后的映射逻辑
       const sessionStartTime = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
       deviceDataPoints = deviceDataRecords.map(record => {
-        // 兼容旧数据：优先使用 timestamp，否则使用 createdAt
+        // 兼容旧数据:优先使用 timestamp,否则使用 createdAt
         const recordTimestamp = (record as any).timestamp ?? (record as any).createdAt;
         const recordTime = new Date(recordTimestamp).getTime();
         const timeOffset = (recordTime - sessionStartTime) / 1000; // 转换为秒（时间）
         
-        const freq = (record as any).frequencyHz ?? (record as any).frequency ?? 0;
-        const amp = (record as any).amplitude ?? null;
-        const mode = (record as any).mode ?? null;
-        
-        // 前端只关心的数据结构：{ t, hz, amp?, mode? }
+        // 核心修复:对齐属性名 + 转换类型 + 补充timestamp字符串
         return {
-          t: timeOffset, // 时间（秒）
-          hz: freq, // 频率
-          amp: amp !== null && amp !== undefined ? amp : undefined, // 振幅（可选）
-          mode: mode || undefined, // 模式（可选）
+          // 1.属性名映射:t → time
+          time: timeOffset, // 转换为number类型
+          // 2. hz从any转为number(用Number()确保类型,空值设为0)
+          hz: Number((record as any).frequencyHz ?? (record as any).frequency ?? 0) || 0,
+          // 3. 补充timestamp字符串(目标类型必填)
+          timestamp: new Date(recordTimestamp).toISOString(),
+          // 4.属性名映射: amp → amplitude,转为number
+          amplitude: Number((record as any).amplitude) || 0,
+          // 5. mode从any转为string(空值设为空字符串)
+          mode: String((record as any).mode) || "",
+          // 可选:如果目标类型有intensity,补充对应字段(没有则忽略)
+          intensity: (record as any).intensity !== null && (record as any).intensity !== undefined 
+            ? Number((record as any).intensity) || 0 
+            : undefined,
         };
       });
     } else {
