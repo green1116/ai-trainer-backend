@@ -16,6 +16,7 @@ export type SessionPayload = {
   startedAt: number; // ms
   endedAt: number; // ms
   samples: VibrationSample[]; // 采样点数组
+  userId?: string; // 可选：用户ID（如果未提供，将从认证信息获取）
 };
 
 /**
