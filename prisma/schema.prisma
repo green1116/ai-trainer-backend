@@ -1,22 +1,35 @@
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id       String    @id @default(uuid())
-  email    String    @unique
-  plan     String    @default("free") // free | pro | clinic
-  role     String?   // 'coach' | 'client' | null (用于 Clinic 用户区分教练和客户)
-  clinicId String?
-  clinic   Clinic?   @relation(fields: [clinicId], references: [id])
-  sessions Session[] // 反向关联：用户的所有会话
+// 配置你的数据库连接（请替换为你自己的数据库URL）
+datasource db {
+  provider = "postgresql" // 也可以是mysql/sqlite等，根据你的数据库类型修改
+  url      = env("DATABASE_URL") // 确保.env文件中有这个环境变量
 }
 
+// User模型（基础用户信息）
+model User {
+  id        String   @id @default(uuid()) // 使用 uuid() 保持与现有数据一致
+  name      String? // 用户名（可选）
+  email     String   @unique // 用户邮箱（唯一）
+  password  String? // 密码（可选，若用OAuth可省略）
+  plan      String   @default("free") // free | pro | clinic
+  role      String? // 'coach' | 'client' | null (用于 Clinic 用户区分教练和客户)
+  clinicId  String?
+  createdAt DateTime @default(now()) // 创建时间
+  updatedAt DateTime @updatedAt // 更新时间
+
+  // 关联关系
+  clinic   Clinic?   @relation(fields: [clinicId], references: [id])
+  // 反向关联：一个用户可以有多个Session
+  sessions Session[]
+}
+
+// Clinic模型（诊所/机构信息）
 model Clinic {
   id       String    @id @default(uuid())
   name     String
@@ -25,27 +38,44 @@ model Clinic {
   sessions Session[]
 }
 
+// Device模型（设备信息）
 model Device {
-  id        String    @id // deviceId (格式: VP-YYYY-NNNNNN)
-  name      String?
+  id        String   @id // deviceId (格式: VP-YYYY-NNNNNN)
+  name      String? // 设备名称（可选）
+  deviceId  String?  @unique // 设备唯一标识（可选，如果 id 已经是唯一标识）
+  type      String? // 设备类型
   clinicId  String?
-  createdAt DateTime  @default(now())
-  clinic    Clinic?   @relation(fields: [clinicId], references: [id])
-  sessions  Session[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  clinic   Clinic?   @relation(fields: [clinicId], references: [id])
+  // 反向关联：一个设备可以有多个Session
+  sessions Session[]
 }
 
+// Session模型（核心，已添加userId关联）
 model Session {
   id        String    @id @default(uuid())
-  userId    String?   // 关联到 User 模型（可选，因为可能通过 clinicId 关联）
+  // 核心修复：添加userId字段，关联到User模型（必填）
+  userId    String
   deviceId  String
   clinicId  String?
   startedAt DateTime
   endedAt   DateTime?
   samples   Json? // BLE v0.9: VibrationSample[] 格式 [{ t: number, hz: number }]
-  user      User?     @relation(fields: [userId], references: [id])
-  device    Device    @relation(fields: [deviceId], references: [id])
-  clinic    Clinic?   @relation(fields: [clinicId], references: [id])
-  deviceData DeviceData[] // 频率点数据
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // 关联关系
+  // 关联User模型（必填，确保每个Session都属于一个用户）
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 关联Device模型（必填，一个Session必须关联一个设备）
+  device     Device       @relation(fields: [deviceId], references: [id])
+  // 关联Clinic模型（可选）
+  clinic     Clinic?      @relation(fields: [clinicId], references: [id])
+  // 频率点数据
+  deviceData DeviceData[]
 }
 
 // 频率点数据表（原子数据，每个记录代表一个时间点的完整状态）
@@ -53,13 +83,13 @@ model DeviceData {
   id          String   @id @default(uuid())
   sessionId   String
   timestamp   DateTime @default(now()) // 数据采集时间戳
-  frequencyHz Float    // 频率 (Hz)
-  amplitude   Float?   // 振幅（可选）
-  mode        String?  // 模式（如 "training", "rehab", "balance" 等，不硬编码）
-  intensity   Float?   // 强度（可选，0-100）
+  frequencyHz Float // 频率 (Hz)
+  amplitude   Float? // 振幅（可选）
+  mode        String? // 模式（如 "training", "rehab", "balance" 等，不硬编码）
+  intensity   Float? // 强度（可选，0-100）
   createdAt   DateTime @default(now())
   session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+
   @@index([sessionId])
   @@index([timestamp])
   @@index([createdAt])
