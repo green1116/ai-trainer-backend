@@ -53,6 +53,8 @@ export async function GET(
     });
 
     // 3. 平均稳定性（从最近的 Session 计算）
+    // FIXED: Removed samples: { not: null } - Json fields cannot use Prisma filters
+    // Commit: dfde7d4
     const recentSessions = await db.session.findMany({
       where: {
         clinicId: id,
