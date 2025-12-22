@@ -4,8 +4,8 @@ import { extractTokenFromHeader, getCurrentUser } from "@/lib/auth"
 import { z } from "zod"
 
 const startSessionSchema = z.object({
-  deviceId: z.string().uuid().optional(),
-  planId: z.string().uuid().optional(),
+  deviceId: z.string().optional(), // 不再限制为 UUID，因为 deviceId 格式是 VP-YYYY-NNNNNN
+  // planId: z.string().uuid().optional(), // Session 模型中没有 planId 字段
   startTime: z.string().datetime().optional(),
 })
 
@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { deviceId, planId, startTime } = startSessionSchema.parse(body)
+    const { deviceId, startTime } = startSessionSchema.parse(body)
+    // const { deviceId, planId, startTime } = startSessionSchema.parse(body) // planId 已移除
 
     // 验证设备是否属于用户
     if (deviceId) {
@@ -42,30 +43,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 验证计划是否属于用户（如果提供）
-    if (planId) {
-      const plan = await db.plan.findFirst({
-        where: {
-          id: planId,
-          userId: user.id,
-        },
-      })
-
-      if (!plan) {
-        return NextResponse.json(
-          { error: "训练计划不存在或不属于当前用户" },
-          { status: 404 }
-        )
-      }
-    }
-
+    // 注意：Session 模型中没有 planId 字段，已移除
     // 创建会话
     const session = await db.session.create({
       data: {
-        userId: user.id,
-        deviceId: deviceId || null,
-        planId: planId || null,
+        userId: user.id, // ✅ Session 模型现在有 userId 字段（必填）
+        deviceId: deviceId || 'unknown-device', // deviceId 是必填的
         startedAt: startTime ? new Date(startTime) : new Date(),
+        // planId: planId || null, // ❌ Session 模型中没有 planId 字段
       },
     })
 

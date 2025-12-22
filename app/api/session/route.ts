@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { SessionPayload } from "@/src/types/ble"
+import { extractTokenFromHeader, getCurrentUser } from "@/lib/auth"
 
 // CORS 头
 const corsHeaders = {
@@ -98,6 +99,10 @@ export async function POST(req: Request) {
   const startTime = Date.now();
   
   try {
+    // 尝试从认证信息获取用户
+    const token = extractTokenFromHeader(req.headers.get("authorization"));
+    const user = await getCurrentUser(token);
+    
     // 解析请求体
     let payload: SessionPayload;
     try {
@@ -114,6 +119,15 @@ export async function POST(req: Request) {
       return Response.json(
         { error: 'Missing required fields: deviceId, startedAt, endedAt' },
         { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // 获取 userId（优先使用认证用户，否则使用 payload 中的 userId）
+    const userId = user?.id || payload.userId;
+    if (!userId) {
+      return Response.json(
+        { error: 'Missing userId: either authenticate or provide userId in payload' },
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -194,8 +208,10 @@ export async function POST(req: Request) {
     }
 
     // 3. Session 自动归属场馆
+    // Session 模型现在需要 userId 字段（必填）
     const session = await db.session.create({
       data: {
+        userId: userId, // 从认证信息或 payload 获取
         deviceId: payload.deviceId,
         clinicId: clinicId, // 自动绑定 clinicId
         startedAt: new Date(payload.startedAt),
