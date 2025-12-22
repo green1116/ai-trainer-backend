@@ -1,7 +1,7 @@
 // 认证工具函数
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import { prisma } from "./db"
+import { db } from "./db"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d"
@@ -74,13 +74,14 @@ export async function getCurrentUser(token: string | null) {
     return null
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await db.user.findUnique({
     where: { id: payload.userId },
     select: {
       id: true,
       email: true,
-      name: true,
-      createdAt: true,
+      plan: true,
+      role: true,
+      clinicId: true,
     },
   })
 
