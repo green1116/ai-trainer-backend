@@ -57,7 +57,8 @@ export async function GET(
       where: {
         clinicId: id,
         endedAt: { not: null },
-        samples: { not: null },
+        // 注意：对于 Json 类型字段，不能直接使用 { not: null }
+        // 需要在查询后过滤
       },
       orderBy: {
         startedAt: 'desc',
@@ -68,7 +69,10 @@ export async function GET(
     let totalScore = 0;
     let scoredSessionCount = 0;
 
-    for (const session of recentSessions) {
+    // 过滤掉 samples 为 null 的 session
+    const sessionsWithSamples = recentSessions.filter(session => session.samples != null);
+
+    for (const session of sessionsWithSamples) {
       const samples = session.samples as VibrationSample[] | null;
       if (samples && Array.isArray(samples) && samples.length > 0) {
         const frequencies = samples

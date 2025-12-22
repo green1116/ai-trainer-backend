@@ -46,7 +46,7 @@ export async function GET(
     startDate.setHours(0, 0, 0, 0);
 
     // 查询当前期间的 Session
-    const sessions = await db.session.findMany({
+    const allSessions = await db.session.findMany({
       where: {
         clinicId: id,
         startedAt: {
@@ -54,7 +54,7 @@ export async function GET(
           lte: endDate,
         },
         endedAt: { not: null },
-        samples: { not: null },
+        // 注意：Json 类型字段不能直接使用 { not: null }，需要在查询后过滤
       },
       include: {
         device: {
@@ -68,6 +68,9 @@ export async function GET(
         startedAt: 'asc',
       },
     });
+
+    // 过滤掉 samples 为 null 的 session
+    const sessions = allSessions.filter(session => session.samples != null);
 
     // 计算统计数据
     let totalStability = 0;
@@ -155,7 +158,7 @@ export async function GET(
           lte: previousEndDate,
         },
         endedAt: { not: null },
-        samples: { not: null },
+        // 注意：Json 类型字段不能直接使用 { not: null }，需要在查询后过滤
       },
       take: 100,
     });
@@ -163,7 +166,10 @@ export async function GET(
     let previousTotalStability = 0;
     let previousScoredCount = 0;
 
-    for (const session of previousSessionsWithData) {
+    // 过滤掉 samples 为 null 的 session
+    const previousSessionsWithSamples = previousSessionsWithData.filter(session => session.samples != null);
+
+    for (const session of previousSessionsWithSamples) {
       const samples = session.samples as VibrationSample[] | null;
       if (samples && Array.isArray(samples) && samples.length > 0) {
         const frequencies = samples
