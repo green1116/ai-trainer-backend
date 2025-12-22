@@ -23,30 +23,29 @@ export async function GET(
     const format = searchParams.get("format") || "json"
 
     // 获取会话数据
+    // 注意：Session 模型中没有 userId 字段，只有 deviceId 和 clinicId
+    // 如果需要用户权限验证，需要通过 clinicId 或其他方式验证
     const session = await db.session.findFirst({
       where: {
         id: sessionId,
-        userId: user.id,
+        // userId: user.id, // Session 模型中没有 userId 字段
       },
       include: {
         device: {
           select: {
+            id: true,
             name: true,
-            model: true,
           },
         },
-        plan: {
+        clinic: {
           select: {
+            id: true,
             name: true,
-            category: true,
           },
         },
-        events: {
-          orderBy: { eventTime: "asc" },
-        },
-        analyses: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
+        deviceData: {
+          orderBy: { timestamp: "asc" },
+          take: 100, // 限制返回的数据点数量
         },
       },
     })
@@ -65,39 +64,33 @@ export async function GET(
       (endTime.getTime() - startTime.getTime()) / 1000
     )
 
-    // 获取肌群激活数据（从姿势分析中提取）
-    const muscleGroups = session.analyses[0]?.errors
-      ? JSON.parse(JSON.stringify(session.analyses[0].errors))
-      : []
+    // 获取频率指标数据（从 deviceData 中提取）
+    const frequencyMetrics = session.deviceData.map((data) => ({
+      timestamp: data.timestamp.toISOString(),
+      frequencyHz: data.frequencyHz,
+      amplitude: data.amplitude || null,
+      mode: data.mode || null,
+      intensity: data.intensity || null,
+    }))
 
-    // 获取频率指标数据（从事件中提取）
-    const frequencyMetrics = session.events
-      .filter((event) => event.type === "frequency_metric")
-      .map((event) => ({
-        time: event.eventTime.toISOString(),
-        hz: (event.detail as any)?.hz || null,
-        timestamp: (event.detail as any)?.timestamp || null,
-      }))
+    // 计算平均频率
+    const avgHz = session.deviceData.length > 0
+      ? session.deviceData.reduce((sum, data) => sum + data.frequencyHz, 0) / session.deviceData.length
+      : null
 
     const report = {
       sessionId: session.id,
-      userId: session.userId,
       deviceId: session.deviceId,
-      deviceName: session.device?.name || "未知设备",
-      planId: session.planId,
-      planName: session.plan?.name,
+      deviceName: session.device?.name || session.device?.id || "未知设备",
+      clinicId: session.clinicId || null,
+      clinicName: session.clinic?.name || null,
       startedAt: session.startedAt.toISOString(),
       endedAt: session.endedAt?.toISOString() || null,
       durationSeconds: durationSeconds,
-      avgHz: session.avgHz,
-      score: session.score,
-      muscleGroups,
+      avgHz: avgHz,
       frequencyMetrics,
-      events: session.events.map((event) => ({
-        time: event.eventTime.toISOString(),
-        type: event.type,
-        detail: event.detail,
-      })),
+      deviceDataCount: session.deviceData.length,
+      samples: session.samples, // 保留 samples 字段（Json 类型）
     }
 
     if (format === "pdf") {
@@ -127,4 +120,5 @@ export async function GET(
     )
   }
 }
+
 
