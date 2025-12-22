@@ -9,6 +9,8 @@
  * 使用 Web Bluetooth API 直接连接设备
  */
 
+/// <reference path="../types.d.ts" />
+
 import { VibrationDevice, DeviceMode, DeviceStatus } from '../../device-capabilities';
 import { FunosCommands } from '../../adapters/funos/commands';
 import { parseStatus, modeValueToDeviceMode, validateStatusFrame } from '../../adapters/funos/parser';
