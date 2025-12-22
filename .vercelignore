@@ -1,0 +1,28 @@
+# 开发文件
+node_modules
+.next
+.env.local
+.env*.local
+*.log
+.DS_Store
+
+# 测试文件
+test-*.pdf
+*.test.ts
+*.test.tsx
+
+# 脚本文件（不需要部署）
+scripts/
+clean-port.bat
+clean-port.ps1
+start-dev.bat
+start-database.ps1
+
+# 文档（可选，如果不需要在部署中包含）
+docs/
+*.md
+!README.md
+
+# Docker 配置（如果使用 Vercel 数据库，不需要）
+docker-compose.yml
+
