@@ -73,9 +73,15 @@ export class DefaultDeviceAdapter implements IDeviceAdapter {
 
   constructor(vendorName: string = 'default', deviceProfile?: DeviceCapabilityProfile) {
     this.vendorName = vendorName;
-    // 如果没有提供 deviceProfile，使用默认值
+    // 如果没有提供 deviceProfile，使用默认值（新格式）
     this.deviceProfile = deviceProfile || {
       model: vendorName,
+      frequencyHz: { min: 1, max: 100 },
+      intensityLevels: 10,
+      modes: [
+        { key: 'training', label: { zh: '训练', en: 'Training' }, frequencyRange: [20, 50] },
+        { key: 'rehab', label: { zh: '康复', en: 'Rehab' }, frequencyRange: [5, 20] },
+      ],
       supports: {
         frequencyRange: [1, 100],
         modes: ['training', 'rehab'],
