@@ -161,16 +161,27 @@ export async function GET(
           // 提取频率数组用于 AI 分析
           frequencySamples = validSamples.map(sample => sample.hz);
           
-          // 准备图表数据点（前端只关心: t, hz, amp?, mode?）
-          // Chart 只做一件事：画数值，不理解业务
+          // 修复后的第167行映射逻辑
           const sessionStartTime = session.startedAt ? new Date(session.startedAt).getTime() : Date.now();
           deviceDataPoints = validSamples.map(sample => {
-            const timeOffset = (sample.t - sessionStartTime) / 1000; // 转换为秒（时间）
-            // 前端只关心的数据结构：{ t, hz, amp?, mode? }
+            // 核心修复: 1. 属性名t->time 2. 补充timestamp字段 3. 补全其他可选字段(amp->amplitude、mode等)
+            const timeOffset = (sample.t - sessionStartTime) / 1000; // 转换为秒 (时间)
+            // 计算实际时间戳（sample.t 是相对于 sessionStartTime 的时间戳，需要加上 sessionStartTime）
+            const actualTimestamp = sessionStartTime + sample.t;
+            
             return {
-              t: timeOffset, // 时间（秒）
-              hz: sample.hz, // 频率
-              // amp 和 mode 在 samples 中可能不存在，保持 undefined
+              // 1. 替换属性名: t → time (匹配目标类型的要求，使用timeOffset作为秒数)
+              time: timeOffset,
+              // 2. 保留hz并确保为number类型
+              hz: Number(sample.hz) || 0,
+              // 3. 补充必填的timestamp字段 (根据sample的时间生成)
+              timestamp: new Date(actualTimestamp).toISOString(),
+              // 4. 可选: amp→amplitude (匹配目标类型的属性名,无则设为null/0)
+              amplitude: (sample as any).amp ? Number((sample as any).amp) : null,
+              // 5. 可选: mode字段 (无则设为null/空字符串)
+              mode: (sample as any).mode ? String((sample as any).mode) : null,
+              // 6. 可选: intensity字段 (目标类型有则补充,无则忽略)
+              intensity: (sample as any).intensity ? Number((sample as any).intensity) : null,
             };
           });
         }
