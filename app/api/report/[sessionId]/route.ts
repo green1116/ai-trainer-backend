@@ -23,12 +23,12 @@ export async function GET(
     const format = searchParams.get("format") || "json"
 
     // 获取会话数据
-    // 注意：Session 模型中没有 userId 字段，只有 deviceId 和 clinicId
-    // 如果需要用户权限验证，需要通过 clinicId 或其他方式验证
+    // FIXED: Session 模型中没有 userId 字段，已移除
+    // Commit: 9b6688d, Latest: 强制触发新部署
     const session = await db.session.findFirst({
       where: {
         id: sessionId,
-        // userId: user.id, // Session 模型中没有 userId 字段
+        // userId: user.id, // ❌ Session 模型中没有 userId 字段，已移除
       },
       include: {
         device: {
