@@ -58,6 +58,8 @@
      "id" TEXT NOT NULL,
      "sessionId" TEXT NOT NULL,
      "eventTime" TIMESTAMP(3) NOT NULL,
+     "type" TEXT NOT NULL,
+     "detail" JSONB,
      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
      "updatedAt" TIMESTAMP(3) NOT NULL,
      CONSTRAINT "PostureEvent_pkey" PRIMARY KEY ("id")
@@ -65,6 +67,7 @@
    
    CREATE INDEX "PostureEvent_sessionId_idx" ON "PostureEvent"("sessionId");
    CREATE INDEX "PostureEvent_eventTime_idx" ON "PostureEvent"("eventTime");
+   CREATE INDEX "PostureEvent_type_idx" ON "PostureEvent"("type");
    
    ALTER TABLE "PostureEvent" ADD CONSTRAINT "PostureEvent_sessionId_fkey" 
      FOREIGN KEY ("sessionId") REFERENCES "Session"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -103,18 +106,38 @@ npx prisma migrate reset
 ## PostureEvent 模型结构
 
 ```prisma
+// 修正后的PostureEvent模型(补充type、detail字段)
 model PostureEvent {
   id        String   @id @default(cuid())
   sessionId String   // 关联Session的id
   session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   eventTime DateTime // 事件时间(代码中用到的字段)
+  // 补充:添加type字段(字符串类型,存储事件类型,如"frequency_metric")
+  type      String   // 事件类型，如 "posture_error", "posture_feedback", "frequency_change", "exercise_complete"
+  // 补充:添加detail字段(Json类型,存储详细数据,如hz、timestamp等)
+  detail    Json?    // 详细信息，如 {"part": "knee", "desc": "slight inward collapse"} 或 {"hz": 35, "timestamp": "2024-01-01T00:00:00Z"}
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([sessionId])
   @@index([eventTime])
+  @@index([type])
 }
 ```
+
+### 字段说明
+
+- **`type`** (String, 必填): 事件类型
+  - `"posture_error"` - 姿势错误
+  - `"posture_feedback"` - 姿势反馈
+  - `"frequency_change"` - 频率变化
+  - `"exercise_complete"` - 训练完成
+  - `"frequency_metric"` - 频率指标
+
+- **`detail`** (Json, 可选): 详细信息
+  - 姿势错误: `{"part": "knee", "desc": "slight inward collapse"}`
+  - 频率变化: `{"hz": 35, "timestamp": "2024-01-01T00:00:00Z"}`
+  - 其他自定义数据
 
 ## 使用示例
 
@@ -126,6 +149,11 @@ const postureEvent = await db.postureEvent.create({
   data: {
     sessionId: "session-id",
     eventTime: new Date(),
+    type: "posture_error", // 必填字段
+    detail: {
+      part: "knee",
+      desc: "slight inward collapse"
+    }, // 可选字段
   },
 })
 
@@ -133,6 +161,17 @@ const postureEvent = await db.postureEvent.create({
 const events = await db.postureEvent.findMany({
   where: {
     sessionId: "session-id",
+  },
+  orderBy: {
+    eventTime: "asc",
+  },
+})
+
+// 按类型查询姿势事件
+const postureErrors = await db.postureEvent.findMany({
+  where: {
+    sessionId: "session-id",
+    type: "posture_error",
   },
   orderBy: {
     eventTime: "asc",
