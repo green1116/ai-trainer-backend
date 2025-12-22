@@ -76,6 +76,8 @@ model Session {
   clinic     Clinic?      @relation(fields: [clinicId], references: [id])
   // 频率点数据
   deviceData DeviceData[]
+  // 姿势事件
+  postureEvents PostureEvent[]
 }
 
 // 频率点数据表（原子数据，每个记录代表一个时间点的完整状态）
@@ -93,4 +95,18 @@ model DeviceData {
   @@index([sessionId])
   @@index([timestamp])
   @@index([createdAt])
+}
+
+// 新增: PostureEvent模型(姿势事件)
+model PostureEvent {
+  id        String   @id @default(cuid())
+  sessionId String   // 关联Session的id
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  eventTime DateTime // 事件时间(代码中用到的字段)
+  // 可根据代码需求补充其他字段,比如eventType、data等
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([eventTime])
 }
