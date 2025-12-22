@@ -240,9 +240,12 @@ export async function POST(
 
     await browser.close();
 
-    // 修复：将 Uint8Array 转换为 Blob
-    // page.pdf() 返回的是 Uint8Array，需要转换为 Blob 或 ArrayBuffer
-    return new Response(new Blob([pdf], { type: 'application/pdf' }), {
+    // 方案一：将 Uint8Array 转换为标准 ArrayBuffer（推荐，彻底解决类型问题）
+    // 1. 将 ArrayBufferLike 转换为标准 ArrayBuffer
+    const arrayBuffer = new Uint8Array(pdf).buffer as ArrayBuffer;
+    
+    // 2. 用标准 ArrayBuffer 创建 Response（无需 Blob 中转，更高效）
+    return new Response(arrayBuffer, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
