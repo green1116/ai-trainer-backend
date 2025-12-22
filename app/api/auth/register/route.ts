@@ -10,6 +10,8 @@ const registerSchema = z.object({
 })
 
 // POST /api/auth/register
+// FIXED: Removed passwordHash and name fields - they don't exist in Prisma schema
+// Latest commit: 34c7630
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
