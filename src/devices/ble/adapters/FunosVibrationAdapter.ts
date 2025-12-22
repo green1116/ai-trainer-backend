@@ -56,6 +56,11 @@ export class FunosVibrationAdapter implements VibrationDevice {
     // 3️⃣ 找到 PDF 中定义的 Service / Characteristic
 
     try {
+      // 检查 Web Bluetooth API 是否可用
+      if (!navigator.bluetooth) {
+        throw new Error('Web Bluetooth API is not available in this environment');
+      }
+
       // 1️⃣ 扫描 BLE 设备
       // TODO: 从 PDF 中找到设备名称或 Service UUID
       const options: RequestDeviceOptions = {
