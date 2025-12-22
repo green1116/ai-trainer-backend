@@ -97,16 +97,20 @@ model DeviceData {
   @@index([createdAt])
 }
 
-// 新增: PostureEvent模型(姿势事件)
+// 修正后的PostureEvent模型(补充type、detail字段)
 model PostureEvent {
   id        String   @id @default(cuid())
   sessionId String   // 关联Session的id
   session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   eventTime DateTime // 事件时间(代码中用到的字段)
-  // 可根据代码需求补充其他字段,比如eventType、data等
+  // 补充:添加type字段(字符串类型,存储事件类型,如"frequency_metric")
+  type      String   // 事件类型，如 "posture_error", "posture_feedback", "frequency_change", "exercise_complete"
+  // 补充:添加detail字段(Json类型,存储详细数据,如hz、timestamp等)
+  detail    Json?    // 详细信息，如 {"part": "knee", "desc": "slight inward collapse"} 或 {"hz": 35, "timestamp": "2024-01-01T00:00:00Z"}
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([sessionId])
   @@index([eventTime])
+  @@index([type])
 }
