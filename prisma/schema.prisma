@@ -8,12 +8,13 @@ generator client {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  email    String  @unique
-  plan     String  @default("free") // free | pro | clinic
-  role     String? // 'coach' | 'client' | null (用于 Clinic 用户区分教练和客户)
+  id       String    @id @default(uuid())
+  email    String    @unique
+  plan     String    @default("free") // free | pro | clinic
+  role     String?   // 'coach' | 'client' | null (用于 Clinic 用户区分教练和客户)
   clinicId String?
-  clinic   Clinic? @relation(fields: [clinicId], references: [id])
+  clinic   Clinic?   @relation(fields: [clinicId], references: [id])
+  sessions Session[] // 反向关联：用户的所有会话
 }
 
 model Clinic {
@@ -35,11 +36,13 @@ model Device {
 
 model Session {
   id        String    @id @default(uuid())
+  userId    String?   // 关联到 User 模型（可选，因为可能通过 clinicId 关联）
   deviceId  String
   clinicId  String?
   startedAt DateTime
   endedAt   DateTime?
   samples   Json? // BLE v0.9: VibrationSample[] 格式 [{ t: number, hz: number }]
+  user      User?     @relation(fields: [userId], references: [id])
   device    Device    @relation(fields: [deviceId], references: [id])
   clinic    Clinic?   @relation(fields: [clinicId], references: [id])
   deviceData DeviceData[] // 频率点数据
