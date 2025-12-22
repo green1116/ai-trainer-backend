@@ -62,15 +62,23 @@ export async function PATCH(
     }
 
     // 更新会话
+    // 注意：Session 模型中不存在 avgHz 和 score 字段
+    // avgHz 可以从 deviceData 或 samples 计算得出
+    // score 可能需要存储在其他地方（如 PostureEvent 或单独的评分表）
     const endTimeDate = new Date(endTime)
     const updatedSession = await db.session.update({
       where: { id },
       data: {
         endedAt: endTimeDate,
-        avgHz: avgFrequency,
-        score: postureScore,
+        // avgHz: avgFrequency, // ❌ Session 模型中不存在此字段
+        // score: postureScore,  // ❌ Session 模型中不存在此字段
       },
     })
+    
+    // TODO: 如果需要存储 avgHz 和 score，可以考虑：
+    // 1. 将 avgHz 存储到 samples JSON 中
+    // 2. 将 score 存储为 PostureEvent（type: "session_score"）
+    // 3. 或者创建单独的 SessionMetrics 表
 
     // 保存事件
     if (events && events.length > 0) {
