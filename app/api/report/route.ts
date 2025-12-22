@@ -27,12 +27,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取会话数据
-    // 注意：Session 模型中没有 userId 字段，只有 deviceId 和 clinicId
-    // 如果需要用户权限验证，需要通过 clinicId 或其他方式验证
+    // 现在 Session 模型已包含 userId 字段，可以用于权限验证
     const session = await db.session.findFirst({
       where: {
         id: sessionId,
-        // userId: user.id, // Session 模型中没有 userId 字段
+        userId: user.id, // ✅ Session 模型现在有 userId 字段
       },
       include: {
         device: {
@@ -84,6 +83,7 @@ export async function GET(request: NextRequest) {
 
     const report = {
       sessionId: session.id,
+      userId: session.userId || null, // ✅ Session 模型现在有 userId 字段
       deviceId: session.deviceId,
       deviceName: session.device?.name || session.device?.id || "未知设备",
       clinicId: session.clinicId || null,
