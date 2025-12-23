@@ -43,8 +43,9 @@ export async function GET() {
           clinicId: true,
           startedAt: true,
           endedAt: true,
-          createdAt: true,
-          updatedAt: true,
+          // 暂时不包含 createdAt 和 updatedAt，因为数据库可能还没有这些字段
+          // createdAt: true,
+          // updatedAt: true,
         },
         orderBy: { startedAt: 'desc' },
       });

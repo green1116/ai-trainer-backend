@@ -29,18 +29,19 @@ export async function GET(req: Request) {
             take: limit,
             skip: offset,
             orderBy: { startedAt: 'desc' },
-            select: {
-              id: true,
-              userId: true,
-              deviceId: true,
-              clinicId: true,
-              startedAt: true,
-              endedAt: true,
-              samples: true,
-              createdAt: true,
-              updatedAt: true,
-              // 不包含关联字段，避免外键验证问题
-            },
+          select: {
+            id: true,
+            userId: true,
+            deviceId: true,
+            clinicId: true,
+            startedAt: true,
+            endedAt: true,
+            samples: true,
+            // 暂时不包含 createdAt 和 updatedAt，因为数据库可能还没有这些字段
+            // createdAt: true,
+            // updatedAt: true,
+            // 不包含关联字段，避免外键验证问题
+          },
           }),
           db.session.count(), // 获取总数
         ]);
@@ -67,7 +68,7 @@ export async function GET(req: Request) {
             createdAt: Date;
             updatedAt: Date;
           }>>(Prisma.sql`
-            SELECT id, "userId", "deviceId", "clinicId", "startedAt", "endedAt", samples, "createdAt", "updatedAt"
+            SELECT id, "userId", "deviceId", "clinicId", "startedAt", "endedAt", samples
             FROM "Session"
             ORDER BY "startedAt" DESC
             LIMIT ${limit} OFFSET ${offset}
@@ -81,8 +82,9 @@ export async function GET(req: Request) {
             ...s,
             startedAt: new Date(s.startedAt),
             endedAt: s.endedAt ? new Date(s.endedAt) : null,
-            createdAt: new Date(s.createdAt),
-            updatedAt: new Date(s.updatedAt),
+            // 暂时不包含 createdAt 和 updatedAt
+            // createdAt: new Date(s.createdAt),
+            // updatedAt: new Date(s.updatedAt),
           }));
           totalCount = Number(rawCount[0]?.count || 0);
         } else {
