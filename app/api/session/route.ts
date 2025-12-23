@@ -21,13 +21,24 @@ export async function GET(req: Request) {
     let sessions, totalCount;
     try {
       // 先尝试简单的查询，不包含关联，避免关联查询导致的问题
+      // 使用 select 明确指定字段，避免 Prisma 自动验证关联
       [sessions, totalCount] = await Promise.all([
         db.session.findMany({
           take: limit,
           skip: offset,
           orderBy: { startedAt: 'desc' },
-          // 暂时移除 include，避免关联查询导致的问题
-          // 如果需要设备信息，可以单独查询
+          select: {
+            id: true,
+            userId: true,
+            deviceId: true,
+            clinicId: true,
+            startedAt: true,
+            endedAt: true,
+            samples: true,
+            createdAt: true,
+            updatedAt: true,
+            // 不包含关联字段，避免外键验证问题
+          },
         }),
         db.session.count(), // 获取总数
       ]);
