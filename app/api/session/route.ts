@@ -22,26 +22,74 @@ export async function GET(req: Request) {
     try {
       // 先尝试简单的查询，不包含关联，避免关联查询导致的问题
       // 使用 select 明确指定字段，避免 Prisma 自动验证关联
-      [sessions, totalCount] = await Promise.all([
-        db.session.findMany({
-          take: limit,
-          skip: offset,
-          orderBy: { startedAt: 'desc' },
-          select: {
-            id: true,
-            userId: true,
-            deviceId: true,
-            clinicId: true,
-            startedAt: true,
-            endedAt: true,
-            samples: true,
-            createdAt: true,
-            updatedAt: true,
-            // 不包含关联字段，避免外键验证问题
-          },
-        }),
-        db.session.count(), // 获取总数
-      ]);
+      // 使用 raw query 作为备选方案，如果 Prisma 查询失败
+      try {
+        [sessions, totalCount] = await Promise.all([
+          db.session.findMany({
+            take: limit,
+            skip: offset,
+            orderBy: { startedAt: 'desc' },
+            select: {
+              id: true,
+              userId: true,
+              deviceId: true,
+              clinicId: true,
+              startedAt: true,
+              endedAt: true,
+              samples: true,
+              createdAt: true,
+              updatedAt: true,
+              // 不包含关联字段，避免外键验证问题
+            },
+          }),
+          db.session.count(), // 获取总数
+        ]);
+      } catch (prismaError) {
+        // 如果 Prisma 查询失败，尝试使用原始 SQL 查询
+        console.error('[Session API] Prisma 查询失败，尝试使用原始 SQL:', prismaError);
+        const errorMessage = prismaError instanceof Error ? prismaError.message : String(prismaError);
+        
+        // 如果是外键约束错误或其他 Prisma 错误，使用原始 SQL 查询
+        if (errorMessage.includes('Foreign key constraint') || 
+            errorMessage.includes('P2003') ||
+            errorMessage.includes('relation') ||
+            errorMessage.includes('column')) {
+          // 使用 Prisma.sql 安全地绑定参数
+          const { Prisma } = await import('@prisma/client');
+          const rawSessions = await db.$queryRaw<Array<{
+            id: string;
+            userId: string;
+            deviceId: string;
+            clinicId: string | null;
+            startedAt: Date;
+            endedAt: Date | null;
+            samples: unknown;
+            createdAt: Date;
+            updatedAt: Date;
+          }>>(Prisma.sql`
+            SELECT id, "userId", "deviceId", "clinicId", "startedAt", "endedAt", samples, "createdAt", "updatedAt"
+            FROM "Session"
+            ORDER BY "startedAt" DESC
+            LIMIT ${limit} OFFSET ${offset}
+          `);
+          
+          const rawCount = await db.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+            SELECT COUNT(*) as count FROM "Session"
+          `);
+          
+          sessions = rawSessions.map(s => ({
+            ...s,
+            startedAt: new Date(s.startedAt),
+            endedAt: s.endedAt ? new Date(s.endedAt) : null,
+            createdAt: new Date(s.createdAt),
+            updatedAt: new Date(s.updatedAt),
+          }));
+          totalCount = Number(rawCount[0]?.count || 0);
+        } else {
+          // 其他错误，重新抛出
+          throw prismaError;
+        }
+      }
 
       // 如果需要设备信息，可以单独查询（可选）
       // 这里先返回基本数据，避免复杂的关联查询导致错误
